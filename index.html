@@ -441,10 +441,25 @@
         
         // 加载公交数据
         async function loadBusData() {
-            try {
-                // 在实际应用中，这里应该是您的JSON文件URL
-                // const response = await fetch('bustime.json');
-                // busSchedules = await response.json();
+    try {
+        // 从 bustime.json 文件加载数据
+        const response = await fetch('bustime.json');
+        
+        // 检查网络请求是否成功
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // 解析 JSON 数据
+        busSchedules = await response.json();
+        
+        console.log('公交数据加载成功:', busSchedules);
+    } catch (error) {
+        console.error('加载公交数据失败:', error);
+        // 可以在这里设置默认数据或显示错误信息
+        busSchedules = {}; // 避免后续代码出错
+    }
+}
                 
                 // 模拟网络请求延迟
                 await new Promise(resolve => setTimeout(resolve, 150));
