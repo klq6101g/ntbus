@@ -440,21 +440,9 @@
         setInterval(updateCurrentTime, 1000);
         
         // 加载公交数据
-       async function loadBusData() {
-  try {
-    // 读取本地bustime.json文件（需确保文件路径正确）
-    const response = await fetch('bustime.json');
-    const busSchedules = await response.json();
-    
-    // 数据加载成功后可在此处进行后续处理
-    console.log('公交数据加载成功:', busSchedules);
-    return busSchedules;
-  } catch (error) {
-    // 处理文件读取错误（如路径错误、文件格式异常等）
-    console.error('加载公交数据失败:', error);
-    throw error;
-  }
-}
+      // 替换模拟加载代码
+const response = await fetch('bustime.json');
+busSchedules = await response.json();
                 
                 // 模拟网络请求延迟
                 
