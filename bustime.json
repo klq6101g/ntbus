@@ -830,7 +830,7 @@
   },
   "49": {
     "remark": "本线路部分时段车次较少，请提前规划出行",
-    "remarkType": "normal",
+    "remarkType": "urgent",
     "name": "49路",
     "up": {
       "route": "新开 → 韩通赢吉",
