@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -224,6 +223,34 @@
             border-bottom: 1px solid #e9ecef;
         }
         
+        .date-type-switch {
+            display: none;
+            gap: 8px;
+            margin: 0 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .date-type-btn {
+            flex: 1;
+            background: white;
+            border: 1px solid #e0e7ff;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-weight: 500;
+        }
+        
+        .date-type-btn.active {
+            background: linear-gradient(to right, #1a2980, #26d0ce);
+            color: white;
+            border-color: #1a2980;
+        }
+        
         .schedule-header {
             padding: 12px 15px;
             font-weight: 600;
@@ -270,6 +297,21 @@
             font-size: 0.6rem;
             padding: 1px 5px;
             border-radius: 8px;
+        }
+        
+        .last-bus-passed {
+            background: #ffebee;
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #e74c3c;
+            font-weight: 500;
+        }
+        
+        .last-bus-passed i {
+            margin-right: 8px;
         }
         
         .footer {
@@ -319,7 +361,6 @@
             color: #e74c3c;
         }
         
-        /* 新增备注区域的样式 */
         .remark-section {
             margin: 15px;
             border-radius: 8px;
@@ -387,7 +428,6 @@
 
 <body>
     <div class="container">
-        <!-- 数据加载指示器 -->
         <div class="loader" id="loader">
             <div class="loader-spinner"></div>
             <p>正在加载公交数据...</p>
@@ -420,7 +460,7 @@
 
         <div class="info-text" id="infoText">
             <i class="fas fa-database" style="font-size: 2.5rem; color: #1a2980; margin-bottom: 15px; opacity: 0.3;"></i>
-            <p>测试阶段，如加载失败请科学上网</p>
+            <p>测试阶段，如加载失败请检查网络设置</p>
             <p style="margin-top: 10px; color: #888; font-size: 0.9rem;">请输入线路号查询，如1、c1(小写字母)</p>
         </div>
 
@@ -442,6 +482,15 @@
                 当前时间: <span id="currentTime"></span>
             </div>
 
+            <div class="date-type-switch" id="dateTypeSwitch">
+                <button class="date-type-btn active" data-type="workday">
+                    <i class="fas fa-briefcase"></i> 工作日
+                </button>
+                <button class="date-type-btn" data-type="holiday">
+                    <i class="fas fa-umbrella-beach"></i> 节假日
+                </button>
+            </div>
+
             <div class="schedule-header">
                 <i class="far fa-clock"></i> 计划时刻表
             </div>
@@ -450,7 +499,6 @@
                 <!-- 时刻表将通过JS动态生成 -->
             </div>
             
-            <!-- 新增的备注区域 -->
             <div class="remark-section" id="remarkSection" style="display: none;">
                 <div class="remark-box" id="remarkBox">
                     <div class="remark-header" id="remarkHeader">
@@ -478,6 +526,7 @@
         let busSchedules = null;
         let currentLine = "";
         let currentDirection = "up";
+        let currentDateType = "workday";
         
         // DOM元素
         const loader = document.getElementById('loader');
@@ -499,6 +548,8 @@
         const remarkBox = document.getElementById('remarkBox');
         const remarkHeader = document.getElementById('remarkHeader');
         const remarkContent = document.getElementById('remarkContent');
+        const dateTypeSwitch = document.getElementById('dateTypeSwitch');
+        const dateTypeButtons = document.querySelectorAll('.date-type-btn');
         
         // 更新当前时间
         function updateCurrentTime() {
@@ -506,6 +557,7 @@
             const hours = now.getHours().toString().padStart(2, '0');
             const minutes = now.getMinutes().toString().padStart(2, '0');
             currentTimeEl.textContent = `${hours}:${minutes}`;
+            return now;
         }
         
         // 初始化更新时间
@@ -594,22 +646,30 @@
                 infoText.style.display = 'block';
                 resultContainer.style.display = 'none';
                 directionSwitch.style.display = 'none';
+                dateTypeSwitch.style.display = 'none';
                 return;
             }
             
             const directionData = lineData[direction];
+            let schedule = directionData.schedule;
+            
+            // 检查是否有分日期类型的时刻表
+            const hasDateTypeSchedule = directionData.scheduleByDateType && 
+                                      directionData.scheduleByDateType.workday && 
+                                      directionData.scheduleByDateType.holiday;
+            
+            // 根据是否有分日期类型的时刻表决定是否显示切换按钮
+            dateTypeSwitch.style.display = hasDateTypeSchedule ? 'flex' : 'none';
+            
+            // 如果有分日期类型的时刻表，使用当前选择的日期类型的时刻表
+            if (hasDateTypeSchedule) {
+                schedule = directionData.scheduleByDateType[currentDateType] || schedule;
+            }
             
             // 更新线路信息
             lineBadge.textContent = line;
             lineName.textContent = lineData.name;
             lineRoute.textContent = directionData.route;
-            
-            // 找到最近的发车时间
-            const nextDeparture = findNextDeparture(directionData.schedule);
-            nextTime.textContent = nextDeparture;
-            
-            // 清空时刻表网格
-            scheduleGrid.innerHTML = '';
             
             // 获取当前时间
             const now = new Date();
@@ -617,8 +677,35 @@
             const currentMinutes = now.getMinutes();
             const currentTotalMinutes = currentHours * 60 + currentMinutes;
             
+            // 找到最近的发车时间
+            const nextDeparture = findNextDeparture(schedule);
+            
+            // 检查是否已过末班车
+            const lastBusTime = schedule[schedule.length - 1];
+            const [lastHours, lastMinutes] = lastBusTime.split(':').map(Number);
+            const lastTotalMinutes = lastHours * 60 + lastMinutes;
+            
+            if (currentTotalMinutes > lastTotalMinutes) {
+                // 显示末班车已过提示
+                nextTime.innerHTML = `
+                    <div class="last-bus-passed">
+                        <div>
+                            <i class="fas fa-exclamation-circle"></i>
+                            今日末班已过
+                        </div>
+                        <div>${lastBusTime}</div>
+                    </div>
+                `;
+            } else {
+                // 正常显示最近发车时间
+                nextTime.innerHTML = nextDeparture;
+            }
+            
+            // 清空时刻表网格
+            scheduleGrid.innerHTML = '';
+            
             // 生成时刻表
-            directionData.schedule.forEach(time => {
+            schedule.forEach(time => {
                 const [hours, minutes] = time.split(':').map(Number);
                 const totalMinutes = hours * 60 + minutes;
                 
@@ -632,7 +719,7 @@
                 }
                 
                 // 标记下一个班次
-                if (time === nextDeparture) {
+                if (time === nextDeparture && currentTotalMinutes <= lastTotalMinutes) {
                     timeSlot.classList.add('next');
                 }
                 
@@ -649,7 +736,7 @@
                 if (lineData.remarkType === 'urgent') {
                     remarkBox.className = 'remark-box urgent';
                     remarkHeader.className = 'remark-header urgent';
-                    remarkHeader.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 重要通知';
+                    remarkHeader.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 紧急通知';
                 } else {
                     remarkBox.className = 'remark-box';
                     remarkHeader.className = 'remark-header';
@@ -683,6 +770,15 @@
                         btn.classList.remove('active');
                     }
                 });
+                // 激活工作日按钮
+                dateTypeButtons.forEach(btn => {
+                    if (btn.dataset.type === 'workday') {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+                currentDateType = 'workday';
             } else {
                 infoText.innerHTML = `
                     <i class="fas fa-info-circle"></i>
@@ -691,6 +787,7 @@
                 infoText.style.display = 'block';
                 resultContainer.style.display = 'none';
                 directionSwitch.style.display = 'none';
+                dateTypeSwitch.style.display = 'none';
             }
         });
         
@@ -709,6 +806,21 @@
             });
         });
         
+        // 日期类型切换按钮事件
+        dateTypeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (currentLine) {
+                    currentDateType = button.dataset.type;
+                    displaySchedule(currentLine, currentDirection);
+                    
+                    // 更新按钮激活状态
+                    dateTypeButtons.forEach(btn => {
+                        btn.classList.toggle('active', btn === button);
+                    });
+                }
+            });
+        });
+        
         // 输入框回车事件
         busNumberInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -720,6 +832,7 @@
         infoText.style.display = 'block';
         resultContainer.style.display = 'none';
         directionSwitch.style.display = 'none';
+        dateTypeSwitch.style.display = 'none';
         
         // 加载公交数据
         async function loadBusData() {
@@ -761,41 +874,35 @@
                         remarkType: "normal",
                         up: {
                             route: "新开 → 韩通赢吉",
-                            schedule: [
-                                "06:30","07:10","07:50","08:25","09:00","09:45","11:05","12:00","13:00","13:45","14:30","15:10","15:55","16:40","17:25","18:10","19:00"
-                            ]
+                            schedule: ["06:30","07:10","07:50","08:25","09:00","09:45","11:05","12:00","13:00","13:45","14:30","15:10","15:55","16:40","17:25","18:10","19:00"],
+                            // 有工作日和节假日两种时刻表
+                            scheduleByDateType: {
+                                workday: ["06:30","07:10","07:50","08:25","09:00","09:45","11:05","12:00","13:00","13:45","14:30","15:10","15:55","16:40","17:25","18:10","19:00"],
+                                holiday: ["07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00"]
+                            }
                         },
                         down: {
                             route: "韩通赢吉 → 新开",
-                            schedule: [
-                                "07:20","08:05","08:45","09:25","09:55","10:45","12:00","12:55","13:55","14:40","15:25","16:10","16:55","17:40","18:20","19:05","19:50"
-                            ]
+                            schedule: ["07:20","08:05","08:45","09:25","09:55","10:45","12:00","12:55","13:55","14:40","15:25","16:10","16:55","17:40","18:20","19:05","19:50"],
+                            // 有工作日和节假日两种时刻表
+                            scheduleByDateType: {
+                                workday: ["07:20","08:05","08:45","09:25","09:55","10:45","12:00","12:55","13:55","14:40","15:25","16:10","16:55","17:40","18:20","19:05","19:50"],
+                                holiday: ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"]
+                            }
                         }
                     },
                     "1路": {
                         name: "1路公交车",
-                        remark: "早高峰时段（7:00-9:00）班次加密，晚高峰（17:00-19:00）每10分钟一班车",
-                        remarkType: "normal",
+                        remark: "本线路全天运营，班次固定",
                         up: {
                             route: "火车站 → 市中心 → 南湖公园",
                             schedule: ["06:00", "06:20", "06:40", "07:00", "07:20", "07:40", "08:00", "08:20", "08:40", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00"]
+                            // 没有分日期类型的时刻表
                         },
                         down: {
                             route: "南湖公园 → 市中心 → 火车站",
                             schedule: ["06:15", "06:35", "06:55", "07:15", "07:35", "07:55", "08:15", "08:35", "08:55", "09:15", "09:45", "10:15", "10:45", "11:15", "11:45", "12:15", "12:45", "13:15", "13:45", "14:15", "14:45", "15:15", "15:45", "16:15", "16:45", "17:15", "17:45", "18:15", "18:45", "19:15", "19:45", "20:15"]
-                        }
-                    },
-                    "2路": {
-                        name: "2路环线",
-                        remark: "本线路为环形线路，正常运营",
-                        remarkType: "normal",
-                        up: {
-                            route: "东站 ⇌ 市政府 ⇌ 西站 ⇌ 东站",
-                            schedule: ["06:10", "06:30", "06:50", "07:10", "07:30", "07:50", "08:10", "08:30", "08:50", "09:10", "09:40", "10:10", "10:40", "11:10", "11:40", "12:10", "12:40", "13:10", "13:40", "14:10", "14:40", "15:10", "15:40", "16:10", "16:40", "17:10", "17:40", "18:10", "18:40", "19:10"]
-                        },
-                        down: {
-                            route: "东站 ⇌ 西站 ⇌ 市政府 ⇌ 东站",
-                            schedule: ["06:25", "06:45", "07:05", "07:25", "07:45", "08:05", "08:25", "08:45", "09:05", "09:25", "09:55", "10:25", "10:55", "11:25", "11:55", "12:25", "12:55", "13:25", "13:55", "14:25", "14:55", "15:25", "15:55", "16:25", "16:55", "17:25", "17:55", "18:25", "18:55", "19:25"]
+                            // 没有分日期类型的时刻表
                         }
                     },
                     "3路": {
@@ -804,11 +911,19 @@
                         remarkType: "urgent",
                         up: {
                             route: "北站 → 大学城 → 科技园",
-                            schedule: ["06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"]
+                            schedule: ["06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"],
+                            scheduleByDateType: {
+                                workday: ["06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"],
+                                holiday: ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"]
+                            }
                         },
                         down: {
                             route: "科技园 → 大学城 → 北站",
-                            schedule: ["07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"]
+                            schedule: ["07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"],
+                            scheduleByDateType: {
+                                workday: ["07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"],
+                                holiday: ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"]
+                            }
                         }
                     }
                 };
@@ -825,5 +940,4 @@
         loadBusData();
     </script>
 </body>
-
 </html>
