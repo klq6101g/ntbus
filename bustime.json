@@ -821,6 +821,7 @@
     "remark": "本线路仅工作日开行",
     "remarkType": "normal",
     "name": "50路",
+    "lastUpdated": "2026-07-25",
     "up": {
       "route": "星湖大厦 → 南通综保区B区",
       "schedule": [
@@ -864,6 +865,7 @@
       ]
     }
   },
+  
   "901": {
     "name": "901路",
     "lastUpdated": "2026-02-20",
