@@ -818,10 +818,10 @@
     }
   },
   "50": {
-    "remark": "本线路仅工作日开行",
+    "remark": "",
     "remarkType": "normal",
     "name": "50路",
-    "lastUpdated": "2026-07-25",
+    "lastUpdated": "2026-07-26",
     "up": {
       "route": "星湖大厦 → 南通综保区B区",
       "schedule": [
