@@ -903,7 +903,7 @@
                 'red': '区间车/短线',
                 'orange': '合营线路',
                 'blue': '合营线路',
-                'green': '节假日专线',
+                'green': '特定班次',
                 'purple': '班次不固定'
             };
             
@@ -1050,7 +1050,7 @@
                 if (lineData.remarkType === 'urgent') {
                     remarkBox.className = 'remark-box urgent';
                     remarkHeader.className = 'remark-header urgent';
-                    remarkHeader.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 紧急通知';
+                    remarkHeader.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 调整信息';
                 } else {
                     remarkBox.className = 'remark-box';
                     remarkHeader.className = 'remark-header';
