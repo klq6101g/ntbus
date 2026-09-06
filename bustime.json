@@ -2163,8 +2163,8 @@
     }
   }, 
   "352": {
-    "remark": "normal",
-    "remarkType": "",
+    "remark": "",
+    "remarkType": "normal",
     "name": "352路",
     "lastUpdated": "2026-09-06",
     "up": {
