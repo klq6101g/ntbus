@@ -4233,12 +4233,16 @@
     "name": "海安316路",
     "lastUpdated": "2026-09-08",
     "up": {
-      "route": "",
-      "schedule": []
+      "route": "兴环 → 胡集办事处",
+      "schedule": [
+        "无"
+      ]
     },
     "down": {
-      "route": "",
-      "schedule": []
+      "route": "胡集办事处 → 兴环",
+      "schedule": [
+        "无" 
+      ]
     }
   },
   "海安321": {
